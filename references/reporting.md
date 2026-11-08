@@ -36,3 +36,5 @@ For a README, a post or a video, one honest line with the context that makes it 
 
 Always name the rig, the procedure, the reference on the same box, and the "before". A number without its reference
 is marketing; with it, it's a measurement.
+
+The handoff for whoever releases (config-only edits, security section, rollout order, after-release checks) is `templates/handoff.md`; see references/rollout.md.

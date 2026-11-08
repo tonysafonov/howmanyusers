@@ -63,6 +63,17 @@ recovery within seconds. What we found instead: auth's catch-all turned the DB e
 database blip logged users out (58 × 401 in one run). After the fix: 0 × 401, 30 × 503. Run it for every dependency
 on the auth path (DB, Redis, an auth service, DNS), before and after the fix, and put the table in the report.
 
+## Memory and stream probes
+
+| Probe | Run | Reads |
+|---|---|---|
+| burst memory | `VUS_LIST="2 4 8" scripts/memprobe.sh` (loops the journey's app open, `memprobe.js`) | memory before / after / peak per step against the container limit, and `RestartCount`. Flat is healthy; climbing then a restart is a per-request allocation (profiling.md, Memory) |
+| price of one stream | `scripts/cpuprobe.sh streamsonly.js 40 streams -e STREAM_EP='POST /path' -e STREAM_BODY='{...}' [-e PRE_EP='GET /path']` | ms CPU per stream (the per-iteration line), and with `VUS` raised how many streams in flight the app holds |
+
+Both abort below 99.9 % checks (streams are checked for `DONE_MARKER`). Run the memory probe before any hold whose
+result you'll quote, warm the app up gently first (`warmup.js` at 2 VUs: a cold app can OOM on the warm-up alone), and
+use the stub's real stream length when judging stream duration.
+
 ## CPU price and profiles
 
 See references/profiling.md: they run at saturation with probes, not inside holds.

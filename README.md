@@ -11,7 +11,7 @@ higher, fixes it one step at a time, and writes it up so a stranger can check it
 
 ## What it found so far
 
-**A Python framework, 220 → 1,400 users on the same 2-vCPU box** ([gramkit](https://github.com/AHTOOOXA/gramkit),
+**A Python framework, 220 → 1,400 users on the same 2-vCPU box** ([gramkit](https://github.com/tonysafonov/gramkit),
 Arjay's multicore Conduit benchmark). No new hardware, just profiling under load:
 
 | Step | Users held 5 min |
@@ -30,7 +30,7 @@ spike, per-request connections overwhelmed Docker's DNS and the auth code turned
 real users out mid-campaign**. A burst of app opens also OOM-killed the container. Both showed up on a test stand, not in front of
 users.
 
-**Python vs TypeScript, same box, same night** ([gramkit-ts](https://github.com/AHTOOOXA/gramkit-ts), the same
+**Python vs TypeScript, same box, same night** ([gramkit-ts](https://github.com/tonysafonov/gramkit-ts), the same
 framework ported to TypeScript, on the same Conduit benchmark):
 
 | Setup (2 workers each, 2 dedicated vCPU) | Users held 5 min | App CPU per request |
@@ -42,7 +42,7 @@ framework ported to TypeScript, on the same Conduit benchmark):
 | plain FastAPI, no ORM (the challenge's reference) | 2,700 | 1.4 ms |
 
 Along the way: Drizzle's query builder sends unprepared statements by default, and `.prepare()` on hot queries was
-worth +22 % (Node) to +32 % (Bun). Details: [gramkit-ts benchmark](https://github.com/AHTOOOXA/gramkit-ts/blob/main/docs/benchmarks/2026-11-08-conduit.md).
+worth +22 % (Node) to +32 % (Bun). Details: [gramkit-ts benchmark](https://github.com/tonysafonov/gramkit-ts/blob/main/docs/benchmarks/2026-11-08-conduit.md).
 
 "Users" here are simulated people held for 5 minutes, each with think times between requests, as in Arjay's
 challenges; not requests per second.
@@ -54,6 +54,16 @@ $9.40 + $7.60 a month; Arjay's sponsor Synteq offers a $20 credit at [synteq.com
 (check the current terms), which covers a month of both. Any provider works. Cancel when you're done; ordering and
 cancelling servers is always your call, never the skill's.
 
+## Ways to use it
+
+- **Pre-scan, no servers** (an hour): it reads your hot path and lists what will break first, with file and line,
+  from the patterns that cost real capacity in the case studies above. Free, and often enough.
+- **Launch or campaign readiness:** model your real users from analytics and logs, build a stand that mirrors
+  production, find the number, fix it step by step, test what happens when the database blips, hand off a release plan.
+- **Framework benchmark:** build a published spec (Arjay's Conduit) on your framework and score it next to the
+  challenge's reference on the same box.
+- **Stack comparison:** two stacks, same app, same box, same night, raw results published.
+
 ## What you get
 
 - **The procedure** (`SKILL.md`): frame the question, rent and check the rig, calibrate against a published reference,
@@ -61,16 +71,18 @@ cancelling servers is always your call, never the skill's.
   profile at saturation, a fix ladder with one change per step, a chaos test, an honest report.
 - **References loaded on demand:** rig and a Synteq API recipe, calibration (Arjay's challenges and their published
   numbers), the user journey from analytics, load and how to read a failure, profiling, fixes that generalise (with
-  numbers), every pitfall we fell into (symptom → cause → fix), reporting.
+  numbers), every pitfall we fell into (symptom → cause → fix), reporting, rollout (the production handoff and a
+  Postgres major-upgrade rehearsal).
 - **Scripts:** preflight (RTT, steal, disk, ports open past the firewall), staircase and hold runs with per-endpoint
   p50/p95/p99 and error checks on every request, CPU price per endpoint, py-spy at saturation and a stack classifier,
-  a chaos test, an A/B runner by commit, an OpenAI-compatible LLM stub, signed Telegram Mini App test users.
-- **Templates:** a k6 user journey, a stand compose file, the user-profile doc and the report.
+  a chaos test, an A/B runner by commit, a memory burst probe and a stream CPU probe, a Postgres major-upgrade
+  rehearsal with a database fingerprint diff, an OpenAI-compatible LLM stub, signed Telegram Mini App test users.
+- **Templates:** a k6 user journey, a stand compose file, the user-profile doc, the report and the production handoff.
 
 ## Quick start
 
 ```bash
-git clone https://github.com/AHTOOOXA/howmanyusers ~/howmanyusers
+git clone https://github.com/tonysafonov/howmanyusers ~/howmanyusers
 ln -s ~/howmanyusers ~/.claude/skills/howmanyusers
 mkdir -p ~/.claude/howmanyusers && cp ~/howmanyusers/house-rules.example.md ~/.claude/howmanyusers/house-rules.md
 ```
@@ -109,7 +121,7 @@ scripts.
 Arjay McCandless: the challenges, the scoring, and `realistic-load-test` (MIT), from which `lib.js`, `hold.js` and
 `staircase.js` are adapted (his licence is next to them in `scripts/k6/`). [k6](https://k6.io),
 [py-spy](https://github.com/benfred/py-spy). Previously published as `perf-lab` in
-[tony-skills](https://github.com/AHTOOOXA/tony-skills).
+[tony-skills](https://github.com/tonysafonov/tony-skills).
 
 ## License
 

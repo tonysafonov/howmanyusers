@@ -37,6 +37,11 @@ them before. It beats anything here.
 0. **Frame the question.** Which app and endpoints, what "a user" is, which peak to survive ("10× the last
    campaign"), which box size to quote, which reference to compare with. Read the code paths that serve the hot
    endpoints before renting anything.
+   **Pre-scan** (`references/prescan.md`): walk the hot path for the patterns that cost capacity in backends we
+   tested (clients built per request, pools above `max_connections`, auth turning infrastructure errors into 401s,
+   transactions held across streams, framework slow paths, logging on the loop, one worker, unprepared statements,
+   unpaginated app-open payloads). Deliver a table with file:line, expected effect (labelled an estimate) and the
+   probe that will confirm it. Often the whole job when the owner only asked "is this ready?".
 1. **Rig** (`references/rig.md`). Order a target (dedicated cores) and a loader in one datacenter — any provider; a
    Synteq API recipe is included — with the owner's OK. Install Docker + py-spy on the target, k6 on the loader.
    Put `TARGET`, `LOADER`, `CONTAINER`, `BASE_URL` in an untracked `perf/rig.env`. Run `scripts/preflight.sh`.
@@ -62,8 +67,8 @@ them before. It beats anything here.
 8. **Chaos** (`scripts/chaos.sh`). Stop the DB (then Redis, DNS...) for a few seconds under load; count statuses.
    You want 503 + retry, never 401.
 9. **Report** (`references/reporting.md`, `templates/report.md`). Answer first, rig, calibration, the user, results
-   tables, ladder, chaos, corrections, what's left. Then propose the production rollout separately; it's the owner's
-   call.
+   tables, ladder, chaos, corrections, what's left. Then propose the production rollout separately (`templates/handoff.md`,
+   `references/rollout.md`); it's the owner's call.
 
 `references/pitfalls.md` lists every trap we fell into, symptom → cause → fix. Read it before step 5 and again
 before step 9.
@@ -80,11 +85,14 @@ $S/scripts/load.sh hold asis 300                   # verdict: 60 s ramp + 5 min 
 $S/scripts/cpuprobe.sh endpointprobe.js 6 me -e EP='GET /users/me'                   # ms CPU per request
 $S/scripts/pyspy.sh out/me.txt endpointprobe.js 6 -e EP='GET /users/me'              # profile at saturation
 python3 $S/scripts/stacks.py top out/me.txt        # inclusive shares of a request (+ children / match / diff)
+VUS_LIST='2 4 8' $S/scripts/memprobe.sh              # app opens in a burst: memory per step, OOM restarts
+$S/scripts/cpuprobe.sh streamsonly.js 40 streams -e STREAM_EP='POST /answers/stream' -e STREAM_BODY='{}'   # ms CPU per stream
 DEP=<db container> $S/scripts/chaos.sh before      # DB stopped 6 s under load: statuses + error window
 DEPLOY_CMD='./perf/deploy.sh "$REF"' EPS='GET /health;GET /users/me' HOLDS='600 750' \
   $S/scripts/ab.sh out/auth base:<sha> new:<sha>   # same procedure per variant, one comparison table
 BOT_TOKEN=<fake> python3 -I $S/scripts/tg_initdata.py 3000 > perf/k6/data/users.json   # Telegram test users
 uv run --with aiohttp python $S/scripts/llm_stub.py                                    # OpenAI-compatible stub
+TARGET=root@<target> PG_CONTAINER=<db> PG_PASSWORD=<pw> NEW_VERSION=17 $S/scripts/pg_rehearse.sh   # DB major upgrade dry run
 ```
 
 Needs: ssh with keys to both boxes, rsync, python3 locally; Docker and py-spy on the target; k6 on the loader.
@@ -111,11 +119,13 @@ p50/p95/p99/errors and req/s per user in every hold summary; streams judged on d
 | boxes, sizing, setup, firewall/Docker ports, disk, the Synteq API recipe, env vars | `references/rig.md` |
 | a reference to calibrate against (Arjay's challenges + published numbers), per-core comparison, building your stack's version | `references/calibration.md` |
 | the user model: analytics → think times, request waves, streams, test users, warm-up, journey calibration | `references/journey.md` |
-| staircase vs holds, criteria, what to record, reading a failure, the chaos test | `references/load.md` |
+| staircase vs holds, criteria, what to record, reading a failure, the chaos test, memory and stream probes | `references/load.md` |
 | CPU price per endpoint, py-spy at saturation, `stacks.py`, memory probes, frames to search for | `references/profiling.md` |
 | the fix ladder procedure, the worked Conduit ladder, fixes that generalise (with numbers) | `references/fixes.md` |
 | every trap we hit: symptom → cause → fix | `references/pitfalls.md` |
+| the pre-scan: patterns to find in the code before renting anything, with what each cost when we found it | `references/prescan.md` |
 | what goes in the write-up, corrections, public claims | `references/reporting.md` |
+| the production handoff (what a release carries, config-only edits, security, rollout order), rehearsing a Postgres major upgrade | `references/rollout.md`, `templates/handoff.md` |
 
 ## Talking to the owner
 
