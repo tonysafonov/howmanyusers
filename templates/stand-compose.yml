@@ -1,0 +1,50 @@
+# The stand: your app exactly as production runs it (same image, same server command, same worker count, same
+# memory limits, same restart policy), plus its database and cache, plus stubs for every third party.
+# Copy, then replace every EDIT. Start it on the TARGET box with a fresh database for every variant:
+#   docker compose -f stand-compose.yml down -v && docker compose -f stand-compose.yml up -d
+name: stand
+
+services:
+  app:
+    image: ${APP_IMAGE:?build your app image and set APP_IMAGE}       # EDIT: built from the commit under test
+    restart: always            # as in prod: an OOM kill restarts the process and drops in-flight requests; you want to see that
+    env_file: [stand.env]      # fake credentials only: a fake bot token, no real API keys, analytics off
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://app:app@db:5432/app        # EDIT
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_BASE_URL=http://llm:8090/v1                           # third parties -> stubs
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-10}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-0}
+    # EDIT: the production command, verbatim. Knobs as variables so fix steps don't need a new image.
+    command: >
+      sh -c "exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-1} ${UVICORN_EXTRA:-}"
+    # The loader must reach this port; nothing else should. Docker-published ports bypass ufw, so bind to the
+    # private interface if the provider has one (BIND=10.x.x.x), and keep a cloud firewall in front otherwise.
+    ports: ["${BIND:-0.0.0.0}:8000:8000"]
+    cap_add: [SYS_PTRACE]      # py-spy from inside the container; from the host as root it is not needed
+    depends_on:
+      db: { condition: service_healthy }
+    deploy:
+      resources:
+        limits:
+          memory: ${APP_MEM:-512M}          # EDIT: the production limit
+
+  db:
+    image: postgres:${PG_VERSION:-17}-alpine                         # EDIT: the production major version
+    command: "postgres ${PG_ARGS:-}"                                 # e.g. -c shared_buffers=128MB -c max_connections=100
+    environment: [POSTGRES_USER=app, POSTGRES_PASSWORD=app, POSTGRES_DB=app]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "app"], interval: 2s, retries: 30 }
+    # no `ports:` on purpose: the app reaches it on the compose network; psql via `docker compose exec db psql`
+    deploy: { resources: { limits: { memory: "${PG_MEM:-512M}" } } }
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --loglevel warning
+    deploy: { resources: { limits: { memory: 64M } } }
+
+  llm:                         # OpenAI-compatible stub (scripts/llm_stub.py); drop if the app has no LLM
+    image: python:3.13-slim
+    working_dir: /stub
+    volumes: ["./llm_stub.py:/stub/llm_stub.py:ro"]
+    command: sh -c "pip install -q aiohttp && exec python llm_stub.py"
+    environment: [STUB_TICK=${STUB_TICK:-0.025}]
