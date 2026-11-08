@@ -63,6 +63,30 @@ python3 scripts/stacks.py diff out/base/me.txt out/new/me.txt
 - Raw `--format raw` (collapsed) files are small and diffable; keep them in results/. For a picture: `py-spy record
   -f speedscope` and https://www.speedscope.app.
 
+## 3. Node and Bun at saturation
+
+Price first with `cpuprobe.sh`: it divides container CPU by throughput, so it works for any runtime. Then profile the
+expensive endpoints, at saturation only, same as py-spy.
+
+- **Node:** start the server with `--cpu-prof --cpu-prof-dir=/tmp/prof` (cluster workers inherit the flag, one profile
+  per process), drive the endpoint with `endpointprobe.js` for 30–60 s, then stop the server **gracefully** (SIGINT or
+  SIGTERM): the profile is written on exit, and SIGKILL writes nothing. Open the `.cpuprofile` in Chrome DevTools
+  (Performance → load profile) or speedscope.app and read the bottom-up view.
+- **Attach to a running Node process (Linux):** start it with `--perf-basic-prof` so JS frames get names, then
+  `perf record -F 99 -g -p <pid> -- sleep 30` and a flamegraph. Closest to the py-spy workflow; needs `perf` on the
+  target.
+- **Bun:** `bun --cpu-prof` (1.3+) writes a profile on exit, the same way; `bun --inspect` opens the web debugger,
+  whose profiler works on a live process.
+- Drop `(idle)` and `(program)` from the totals (the event loop waiting), translate shares into ms with the
+  endpoint's price, rank fixes by ms × rate.
+
+What we saw in a TypeScript backend (Hono + Drizzle, Conduit): the app was cheap (1.1–1.5 ms per request) and the
+**database** became the cost: Drizzle sends unprepared statements, so Postgres planned every query. That shows on the
+database side, not in the app profile: compare Postgres CPU per request between variants, and check
+`pg_stat_statements` / `pg_prepared_statements`. Frames worth searching in Node/Bun profiles: client constructors and
+`createSecureContext` under a request (built per request), ORM query building on every call, `JSON.stringify` of
+large payloads, synchronous log writes, schema validation of large responses.
+
 ## What profiles of Python web backends tend to show
 
 Frames worth searching for (`stacks.py match`), each a finding we actually had (details in references/fixes.md):
