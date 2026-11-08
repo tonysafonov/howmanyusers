@@ -58,6 +58,7 @@ cancelling servers is always your call, never the skill's.
 
 - **Pre-scan, no servers** (an hour): it reads your hot path and lists what will break first, with file and line,
   from the patterns that cost real capacity in the case studies above. Free, and often enough.
+  Example: [a pre-scan of gramkit](examples/prescan-gramkit.md), what was left after its own fix ladder.
 - **Launch or campaign readiness:** model your real users from analytics and logs, build a stand that mirrors
   production, find the number, fix it step by step, test what happens when the database blips, hand off a release plan.
 - **Framework benchmark:** build a published spec (Arjay's Conduit) on your framework and score it next to the
