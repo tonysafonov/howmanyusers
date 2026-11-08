@@ -28,7 +28,7 @@ profile, a hold). Never report a pre-scan finding as a measured result.
    - **Numbers from this file** are what a pattern cost *elsewhere*: cite them as such ("cost 7 ms per request in
      another backend"), never as a measurement of the scanned code.
    - Keep table cells short; put the reasoning in a numbered list under the table.
-   - Example output: [`examples/prescan-gramkit.md`](../examples/prescan-gramkit.md).
+   - Example output: [`examples/prescan-gramkit.md`](https://github.com/tonysafonov/howmanyusers/blob/main/examples/prescan-gramkit.md).
 4. Hand the list to the fix ladder (`references/fixes.md`): the measurement decides the order, not the pre-scan.
 
 ## The checks

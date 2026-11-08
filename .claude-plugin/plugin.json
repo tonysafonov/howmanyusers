@@ -1,0 +1,27 @@
+{
+  "name": "howmanyusers",
+  "version": "0.1.0",
+  "description": "How many users can your app hold? Load-test, profile and fix a backend Arjay-McCandless-style: a code pre-scan, two rented VPS, realistic users from analytics, 5-minute holds, CPU prices and profiles, a fix ladder, a chaos test, an honest report.",
+  "author": {
+    "name": "Anton Safonov",
+    "url": "https://tonysafonov.com"
+  },
+  "homepage": "https://github.com/tonysafonov/howmanyusers",
+  "repository": "https://github.com/tonysafonov/howmanyusers",
+  "license": "MIT",
+  "keywords": [
+    "load-testing",
+    "performance",
+    "capacity-planning",
+    "k6",
+    "profiling",
+    "benchmark",
+    "fastapi",
+    "nodejs",
+    "bun",
+    "postgresql"
+  ],
+  "skills": [
+    "./skills/howmanyusers"
+  ]
+}
